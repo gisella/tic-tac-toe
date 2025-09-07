@@ -1,0 +1,15 @@
+parameters:
+    env(MONGODB_URL): ''
+    env(MONGODB_URI): ''
+    env(MONGODB_DB): ''    
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'

@@ -1,0 +1,111 @@
+services:
+#  frankephp:
+#    #image: ${IMAGES_PREFIX:-}app-php
+#    container_name: php
+#    build:
+#      context: docker/frankephp
+#    #restart: unless-stopped
+#    environment:
+#        FRANKENPHP_WORKER_CONFIG: watch
+#        # See https://xdebug.org/docs/all_settings#mode
+#        XDEBUG_MODE: "${XDEBUG_MODE:-off}"
+#        APP_ENV: "${APP_ENV:-dev}"
+#        SERVER_NAME: ${SERVER_NAME:-localhost}, php:80
+#        APP_DEBUG: 1
+#        XDEBUG_CONFIG: client_host=host.docker.internal client_port=9003
+#        PHP_IDE_CONFIG: serverName=php
+#    extra_hosts:
+#      - host.docker.internal:host-gateway
+#    tty: true
+#    volumes:
+#      - ./:/app
+#    ports:
+#      # HTTP
+#      - target: 80
+#        published: ${HTTP_PORT:-8080}
+#        protocol: tcp
+#      # HTTPS
+#      - target: 443
+#        published: ${HTTPS_PORT:-443}
+#        protocol: tcp
+#      # HTTP/3
+#      - target: 443
+#        published: ${HTTP3_PORT:-443}
+#        protocol: udp
+#    env_file:
+#      - docker/.env
+#    depends_on:
+#      - db
+      #- nginx
+
+  myphp:
+    #image: ${IMAGES_PREFIX:-}app-php
+    container_name: php
+    build:
+      context: docker/php
+    #restart: unless-stopped
+    environment:
+      XDEBUG_CONFIG: client_host=host.docker.internal client_port=9003
+      PHP_IDE_CONFIG: serverName=php
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ./:/var/www/symfony/
+    user: "1000:1000"  # Forza l'uso dell'utente corretto
+    env_file:
+      - docker/.env
+    depends_on:
+      - db
+      #- nginx
+
+  nginx:
+    build:
+      context: docker/nginx
+    container_name: nginx
+    restart: unless-stopped
+    volumes:
+      - ./:/var/www/symfony:ro
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    env_file:
+      - docker/.env
+
+
+  db:
+    image: mongo:3.6
+    container_name: "mongodb_service"
+    environment:
+      MONGO_INITDB_DATABASE: $MONGO_INITDB_DATABASE
+      MONGO_INITDB_ROOT_USERNAME: $MONGO_INITDB_ROOT_USERNAME
+      MONGO_INITDB_ROOT_PASSWORD: $MONGO_INITDB_ROOT_PASSWORD
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo/mongo_init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    env_file:
+      - docker/.env
+
+###> doctrine/mongodb-odm-bundle ###
+  mongodb:
+    # In production, you may want to use a managed database service
+    image: mongodb/mongodb-atlas-local:latest
+    environment:
+      - MONGODB_INITDB_DATABASE=${MONGODB_DB:-app}
+      # You should definitely set a root username and password in production
+      - MONGODB_INITDB_ROOT_USERNAME=${MONGODB_USERNAME:-}
+      - MONGODB_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD:-}
+    volumes:
+      - mongodb_data:/data/db:rw
+      # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
+      # - ./docker/mongodb/data:/data/db:rw
+###< doctrine/mongodb-odm-bundle ###
+
+volumes:
+  caddy_data:
+  caddy_config:
+###> symfony/mercure-bundle ###
+###< symfony/mercure-bundle ###
+###> doctrine/mongodb-odm-bundle ###
+  mongodb_data:
+###< doctrine/mongodb-odm-bundle ###
